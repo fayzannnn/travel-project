@@ -5,6 +5,8 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import mongoose from "mongoose";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { seedPackages } from "./data/packages.js";
 import AdminUser from "./models/AdminUser.js";
 import HomepageContent from "./models/HomepageContent.js";
@@ -20,6 +22,8 @@ import { defaultHomepage } from "../../shared/homepage.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
+const clientDistPath = fileURLToPath(new URL("../../client/dist", import.meta.url));
+const clientIndexPath = join(clientDistPath, "index.html");
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim());
@@ -154,7 +158,16 @@ async function migrateFlatPackages() {
 }
 
 app.disable("x-powered-by");
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      "font-src": ["'self'", "data:", "https:"],
+      "img-src": ["'self'", "data:", "https:"],
+      "style-src": ["'self'", "'unsafe-inline'", "https:"],
+      "style-src-attr": ["'unsafe-inline'"],
+    },
+  },
+}));
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: "20kb" }));
 app.use(cookieParser());
@@ -178,6 +191,16 @@ app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin", adminRoutes);
+
+app.use(express.static(clientDistPath));
+app.get("*", (request, response, next) => {
+  if (request.path === "/api" || request.path.startsWith("/api/")) {
+    return next();
+  }
+  response.sendFile(clientIndexPath, (error) => {
+    if (error) next(error);
+  });
+});
 
 app.use((_request, response) => {
   response.status(404).json({ message: "Route not found." });
