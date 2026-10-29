@@ -13,6 +13,7 @@ const inquirySchema = new mongoose.Schema(
     budget: { type: Number, min: 1, default: null },
     additionalLocation: { type: String, trim: true, maxlength: 120, default: "" },
     message: { type: String, trim: true, maxlength: 1000, default: "" },
+    isCustomApproach: { type: Boolean, default: false },
     followUpDate: { type: Date, default: null },
     followUpCompleted: { type: Boolean, default: false },
     status: { type: String, enum: ["new", "contacted", "closed"], default: "new" },

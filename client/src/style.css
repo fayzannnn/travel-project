@@ -87,6 +87,9 @@ img { max-width: 100%; display: block; }
 .section-head h2 { max-width: 14ch; font-size: 2.2rem; }
 .section-head p { max-width: 40ch; color: var(--ink-soft); font-size: .98rem; }
 .package-filters { display: grid; gap: 10px; margin: 22px 0 8px; padding: 10px 0; border-top: 1px solid var(--line-light); }
+.package-search { display: grid; max-width: 420px; gap: 5px; color: var(--ink-soft); font-size: .84rem; font-weight: 600; }
+.package-search input { width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--line-light); border-radius: var(--radius); background: var(--paper); color: var(--ink); font-size: .95rem; }
+.package-search input:focus-visible { outline: 3px solid var(--clay); outline-offset: 2px; }
 .package-filter-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .package-filter-chip { padding: 6px 14px; border: 1px solid var(--line-light); border-radius: 999px; background: transparent; color: var(--ink); font-size: .84rem; cursor: pointer; }
 .package-filter-chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
@@ -202,6 +205,9 @@ footer li a:hover, .footer-link:hover { color: var(--paper); }
 .trip-plan-price span { color: var(--ink-soft); font: 400 .72rem "Work Sans", sans-serif; }
 .trip-plan-facts { display: grid; gap: 5px; margin-top: 12px; color: var(--ink-soft); font-size: .84rem; }
 .trip-plan-card .trip-inquiry-button { position: static; flex: 0 0 auto; width: 100%; margin: 12px 0 0; padding: 9px 14px; font-size: .84rem; text-align: center; box-shadow: none; }
+.trip-whatsapp-button { display: block; width: 100%; margin-top: 8px; padding: 9px 14px; border-radius: var(--radius); background: #128c7e; color: #fff; font-size: .84rem; font-weight: 600; text-align: center; }
+.trip-whatsapp-button:hover { background: #0c6f63; }
+.trip-whatsapp-button:focus-visible { outline: 3px solid var(--clay); outline-offset: 2px; }
 .itinerary-link, .itinerary-back { width: fit-content; margin-top: 16px; padding: 0 0 3px; border: 0; border-bottom: 1px solid var(--clay); background: transparent; color: var(--ink); font-size: .86rem; font-weight: 600; cursor: pointer; }
 .itinerary-link:hover, .itinerary-back:hover { color: var(--clay); }
 .itinerary-view { margin-top: 20px; padding: 22px; border: 1px solid var(--line-light); background: #fff; }
@@ -344,6 +350,7 @@ footer li a:hover, .footer-link:hover { color: var(--paper); }
 .status-new { background: #f7e9d0; color: #6b4918; }
 .status-contacted { background: #e0e9f1; color: #2b526e; }
 .status-closed, .status-published { background: #e4ebdf; color: #36563b; }
+.custom-approach-pill { background: #f3e5d8; color: #754126; }
 .inquiry-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 24px; margin: 16px 0; color: var(--ink-soft); font-size: .9rem; }
 .inquiry-details b { color: var(--ink); }
 .inquiry-follow-up { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; margin-bottom: 14px; }

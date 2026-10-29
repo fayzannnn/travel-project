@@ -26,6 +26,7 @@ router.post("/", inquiryLimiter, async (request, response, next) => {
       additionalLocation,
       message,
       selectedPlan,
+      isCustomApproach,
       package: packageId,
     } =
       request.body;
@@ -70,6 +71,9 @@ router.post("/", inquiryLimiter, async (request, response, next) => {
     if (selectedPlan !== undefined && !["", "Standard", "Moderate", "Premium"].includes(selectedPlan)) {
       errors.push("Choose a valid package plan.");
     }
+    if (isCustomApproach !== undefined && typeof isCustomApproach !== "boolean") {
+      errors.push("The custom trip indicator is invalid.");
+    }
     if (errors.length) {
       return response.status(400).json({ message: errors.join(" ") });
     }
@@ -96,6 +100,7 @@ router.post("/", inquiryLimiter, async (request, response, next) => {
       budget: parsedBudget,
       additionalLocation: additionalLocation?.trim() || "",
       message: message?.trim() || "",
+      isCustomApproach: isCustomApproach === true,
     });
     response.status(201).json({
       message: "Your trip inquiry has been saved. Our team will be in touch soon.",

@@ -216,7 +216,11 @@ function InquiryPanel({ onFollowUpsChanged, refreshKey }) {
           {inquiries.map((inquiry) => (
             <article className="inquiry-card" key={inquiry._id}>
               <div className="inquiry-card-heading">
-                <div><h3>{inquiry.name}</h3><span className={`status-pill status-${inquiry.status}`}>{inquiry.status}</span></div>
+                <div>
+                  <h3>{inquiry.name}</h3>
+                  <span className={`status-pill status-${inquiry.status}`}>{inquiry.status}</span>
+                  {inquiry.isCustomApproach && <span className="status-pill custom-approach-pill">Custom approach</span>}
+                </div>
                 <time dateTime={inquiry.createdAt}>{new Date(inquiry.createdAt).toLocaleString()}</time>
               </div>
               <div className="inquiry-details">
@@ -493,7 +497,7 @@ function PackageEditor({ item, onCancel, onSaved }) {
                 <label>Duration<input value={plan.duration} onChange={(event) => updatePlan(planIndex, "duration", event.target.value)} maxLength="80" required /></label>
                 <label>Stay type<input value={plan.stayType} onChange={(event) => updatePlan(planIndex, "stayType", event.target.value)} maxLength="100" required /></label>
                 <label>Price per person (₹)<input type="number" min="1" max="1000000" step="1" value={plan.price} onChange={(event) => updatePlan(planIndex, "price", event.target.value)} required /></label>
-                <label>Maximum group size<input type="number" min="1" max="12" step="1" value={plan.maxGroupSize} onChange={(event) => updatePlan(planIndex, "maxGroupSize", event.target.value)} required /></label>
+                <label>Minimum group size<input type="number" min="1" max="12" step="1" value={plan.maxGroupSize} onChange={(event) => updatePlan(planIndex, "maxGroupSize", event.target.value)} required /></label>
               </div>
               <div className="admin-itinerary-editor">
                 <div className="admin-panel-heading">

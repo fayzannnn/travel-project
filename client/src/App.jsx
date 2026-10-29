@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createInquiry, getHomepageContent, getPackages, getPublicReviews } from "./api.js";
 import { defaultHomepage } from "../../shared/homepage.js";
 
+const whatsappAdminNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "918070020918";
+
 const valueIcons = [
   <path key="price" d="M15 3 26 9v12l-11 6L4 21V9z" />,
   <g key="time"><circle cx="15" cy="15" r="11" /><path d="M15 8v7l5 3" /></g>,
@@ -14,6 +16,14 @@ const heroPhotos = [
     place: "The Himalayas",
     src: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=78",
     position: "center 54%",
+  },
+  {
+    place: "Kedarnath Temple",
+    src: "https://i.pinimg.com/736x/9a/c6/84/9ac684a41cd2dbb26d92ff3f89c20246.jpg",
+    position: "center 52%",
+    credit: "Raviarts",
+    license: "CC BY-SA 4.0",
+    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
   },
   {
     place: "The Taj Mahal",
@@ -381,6 +391,16 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
                     <button className="btn-primary trip-inquiry-button" type="button" onClick={() => onInquiry(item)}>
                       Choose plan
                     </button>
+                    <a
+                      className="trip-whatsapp-button"
+                      href={`https://wa.me/${whatsappAdminNumber}?text=${encodeURIComponent(
+                        `Hi, I'm interested in the ${item.plan || "Standard"} plan for ${items[0].destination || items[0].title} (₹${item.price.toLocaleString("en-IN")} per person). Could you please share more details?`,
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Contact on WhatsApp
+                    </a>
                   </article>
                 ))}
               </div>
@@ -448,6 +468,7 @@ function InquiryDialog({ packageItem, initialDetails, onClose }) {
       inquiry.destination = packageItem.destination || packageItem.title;
       inquiry.selectedPlan = packageItem.plan || "";
     }
+    if (initialDetails.isCustomApproach) inquiry.isCustomApproach = true;
 
     try {
       const result = await createInquiry(inquiry);
@@ -584,6 +605,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [packagePriceFilter, setPackagePriceFilter] = useState("all");
   const [packageRegionFilter, setPackageRegionFilter] = useState("all");
+  const [packageSearch, setPackageSearch] = useState("");
   const packageCarouselRef = useRef(null);
   const [packageScrollPosition, setPackageScrollPosition] = useState({ canScrollBack: false, canScrollForward: false });
 
@@ -635,7 +657,7 @@ function App() {
   }
 
   function continueCustomTrip(details) {
-    openInquiry(null, details);
+    openInquiry(null, { ...details, isCustomApproach: true });
   }
 
   function openTrip(item) {
@@ -671,11 +693,17 @@ function App() {
     ),
   );
   const filteredTripGroups = groupedPackages.filter((items) => {
+    const searchTerm = packageSearch.trim().toLocaleLowerCase();
+    const matchesSearch = !searchTerm || items.some((item) =>
+      [item.destination, item.title].some((place) =>
+        place?.toLocaleLowerCase().includes(searchTerm),
+      ),
+    );
     const matchesRegion = packageRegionFilter === "all" || items.some((item) => item.region === packageRegionFilter);
     const matchesPrice = packagePriceFilter === "all" || items.some((item) =>
       packagePriceFilter === "under" ? item.price < 10000 : item.price >= 10000,
     );
-    return matchesRegion && matchesPrice;
+    return matchesSearch && matchesRegion && matchesPrice;
   });
 
   useEffect(() => {
@@ -698,7 +726,7 @@ function App() {
       carousel.removeEventListener("scroll", updateScrollPosition);
       window.removeEventListener("resize", updateScrollPosition);
     };
-  }, [filteredTripGroups.length, packagePriceFilter, packageRegionFilter]);
+  }, [filteredTripGroups.length, packagePriceFilter, packageRegionFilter, packageSearch]);
 
   function scrollPackages(direction) {
     const carousel = packageCarouselRef.current;
@@ -785,6 +813,15 @@ function App() {
             )}
             {packages.length > 0 && (
               <div className="package-filters" aria-label="Filter packages">
+                <label className="package-search">
+                  <span>Search by place</span>
+                  <input
+                    type="search"
+                    value={packageSearch}
+                    onChange={(event) => setPackageSearch(event.target.value)}
+                    placeholder="e.g. Kerala or Goa"
+                  />
+                </label>
                 <div className="package-filter-group" role="group" aria-label="Filter by price">
                   {[
                     ["all", "All prices"],
@@ -891,7 +928,7 @@ function App() {
                 </div>
               </>
             ) : packages.length > 0 ? (
-              <p className="package-empty">No trips match these filters. Choose “All prices” or “All regions” to reset a filter.</p>
+              <p className="package-empty">No trips match your search and filters. Try another place or reset a filter.</p>
             ) : null}
           </div>
         </section>
