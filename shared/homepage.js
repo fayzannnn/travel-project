@@ -1,9 +1,9 @@
 export const defaultHomepage = {
-  brandName: "Travel Khor",
+  brandName: "Nomad Travels",
   heroEyebrow: "Budget tours, run properly",
   heroTitle: "See more of India without emptying your bag.",
   heroDescription:
-    "Travel Khor plans small-group trips with honest pricing — no hidden add-ons, no rushed itineraries, just well-planned routes built around what you can actually afford.",
+    "Nomad Travels plans small-group trips with honest pricing — no hidden add-ons, no rushed itineraries, just well-planned routes built around what you can actually afford.",
   heroStats: [
     { value: "40+", label: "Routes planned" },
     { value: "₹4,999", label: "Starting per person" },

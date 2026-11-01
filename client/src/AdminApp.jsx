@@ -103,8 +103,8 @@ function Login({ onLogin }) {
   return (
     <main className="admin-login-page">
       <form className="admin-login-card" onSubmit={handleSubmit}>
-        <a className="admin-back-link" href="/">← Back to Travel Khor</a>
-        <p className="eyebrow">Travel Khor</p>
+        <a className="admin-back-link" href="/">← Back to Nomad Travels</a>
+        <p className="eyebrow">Nomad Travels</p>
         <h1>Admin sign in</h1>
         <p className="admin-login-description">Manage your tours, trip requests, and homepage content.</p>
         <label>Email<input name="email" type="email" autoComplete="username" maxLength="254" required /></label>
@@ -696,7 +696,7 @@ function HomePagePanel() {
         </section>
 
         <section className="admin-form-card">
-          <h3>Why Travel Khor</h3>
+          <h3>Why Nomad Travels</h3>
           <div className="admin-form-grid">
             {homepageFields.slice(7, 11).map(([field, label]) => (
               <label key={field} className={field === "whyDescription" || field === "offerDescription" ? "admin-span-2" : ""}>
@@ -883,7 +883,7 @@ function AdminDashboard({ admin, onLogout }) {
   return (
     <div className="admin-shell">
       <header className="admin-header">
-        <a className="admin-brand" href="/">Travel Khor<span>.</span><small>Admin</small></a>
+        <a className="admin-brand" href="/">Nomad Travels<span>.</span><small>Admin</small></a>
         <div className="admin-account"><span>{admin.email}</span><button className="admin-button" type="button" onClick={logout}>Sign out</button></div>
       </header>
       <main className="admin-main">

@@ -11,7 +11,7 @@ export default function ReviewPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    document.title = "Share your trip story — Travel Khor";
+    document.title = "Share your trip story — Nomad Travels";
     getPackages()
       .then((result) => setPackages(result.data))
       .catch((loadError) => setPackageError(loadError.message));
@@ -60,7 +60,7 @@ export default function ReviewPage() {
     <div className="review-page">
       <header className="site-nav">
         <div className="nav-row wrap">
-          <a href="/" className="logo">Travel Khor<span className="dot">.</span></a>
+          <a href="/" className="logo">Nomad Travels<span className="dot">.</span></a>
           <nav className="links review-nav">
             <a href="/#packages">Packages</a>
             <a href="/#voices">Reviews</a>
@@ -119,7 +119,7 @@ export default function ReviewPage() {
           </label>
           <label className="review-consent">
             <input type="checkbox" name="consentToPublish" required />
-            <span>I agree Travel Khor may publish my name, rating, review, and trip memory if an admin approves it.</span>
+            <span>I agree Nomad Travels may publish my name, rating, review, and trip memory if an admin approves it.</span>
           </label>
           <label className="review-honeypot" aria-hidden="true">
             Leave this field empty
@@ -134,7 +134,7 @@ export default function ReviewPage() {
         </form>
       </main>
       <footer className="review-footer">
-        <div className="wrap"><a href="/">Travel Khor</a><span>Made for travellers, not tourists.</span></div>
+        <div className="wrap"><a href="/">Nomad Travels</a><span>Made for travellers, not tourists.</span></div>
       </footer>
     </div>
   );

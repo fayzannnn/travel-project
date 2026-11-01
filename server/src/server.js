@@ -228,12 +228,22 @@ async function startServer() {
 
   if ((await Package.estimatedDocumentCount()) === 0) {
     await Package.insertMany(nestSeedPackages(seedPackages));
-    console.info("Inserted the initial Travel Khor package catalog.");
+    console.info("Inserted the initial Nomad Travels package catalog.");
   }
   await migrateFlatPackages();
   if (!(await HomepageContent.exists({ key: "main" }))) {
     await HomepageContent.create({ key: "main", ...defaultHomepage });
     console.info("Inserted the initial homepage content.");
+  } else {
+    const homepageContent = await HomepageContent.findOne({ key: "main" });
+    if (homepageContent?.brandName === "Travel Khor") {
+      homepageContent.brandName = defaultHomepage.brandName;
+      homepageContent.heroDescription = homepageContent.heroDescription.replace(
+        "Travel Khor",
+        defaultHomepage.brandName,
+      );
+      await homepageContent.save();
+    }
   }
 
   const { ADMIN_EMAIL, ADMIN_PASSWORD, JWT_SECRET } = process.env;
@@ -259,12 +269,12 @@ async function startServer() {
   }
 
   app.listen(port, () => {
-    console.info(`Travel Khor API listening on http://localhost:${port}`);
+    console.info(`Nomad Travels API listening on http://localhost:${port}`);
   });
 }
 
 startServer().catch((error) => {
-  console.error("Could not start the Travel Khor API:", error);
+  console.error("Could not start the Nomad Travels API:", error);
   process.exitCode = 1;
 });
 

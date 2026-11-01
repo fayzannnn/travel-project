@@ -188,7 +188,7 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
         pdf.setTextColor(...colors.gold);
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(14);
-        pdf.text("TRAVEL KHOR", margin, 13);
+        pdf.text("NOMAD TRAVELS", margin, 13);
         pdf.setTextColor(...colors.white);
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
@@ -308,7 +308,7 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
         pdf.setTextColor(...colors.muted);
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(7);
-        pdf.text("TRAVEL KHOR  |  YOUR JOURNEY, YOUR WAY", margin, pageHeight - 8);
+        pdf.text("NOMAD TRAVELS  |  YOUR JOURNEY, YOUR WAY", margin, pageHeight - 8);
         pdf.text(`${page} / ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: "right" });
       }
       pdf.save(`${filename || "trip-itinerary"}.pdf`);
@@ -999,7 +999,7 @@ function App() {
             <div>
               <h2>Company</h2>
               <ul>
-                <li><a href="#why">Why Travel Khor</a></li>
+                <li><a href="#why">Why Nomad Travels</a></li>
                 <li><a href="#voices">Reviews</a></li>
                 <li><a href="/feedback">Share your trip story</a></li>
                 <li><button className="footer-link" type="button" onClick={() => openInquiry()}>Contact us</button></li>

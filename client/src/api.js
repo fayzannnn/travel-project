@@ -11,7 +11,7 @@ async function request(path, options = {}) {
       ...options,
     });
   } catch {
-    throw new Error("Cannot reach Travel Khor right now. Please try again shortly.");
+    throw new Error("Cannot reach Nomad Travels right now. Please try again shortly.");
   }
 
   const result = await response.json().catch(() => ({}));
