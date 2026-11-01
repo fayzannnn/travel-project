@@ -223,10 +223,9 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
         ["PRICE / PERSON", `INR ${Number(item.price || 0).toLocaleString("en-IN")}`],
         ["DURATION", item.duration],
         ["STAY", item.stayType],
-        ["GROUP SIZE", `Up to ${item.maxGroupSize} travellers`],
       ];
       const gap = 3;
-      const cardWidth = (contentWidth - gap * 3) / 4;
+      const cardWidth = (contentWidth - gap * (details.length - 1)) / details.length;
       details.forEach(([label, value], index) => {
         const x = margin + index * (cardWidth + gap);
         pdf.setFillColor(...colors.paper);
@@ -382,7 +381,6 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
                     <div className="trip-plan-facts">
                       <span>{item.duration}</span>
                       <span>{item.stayType}</span>
-                      <span>Up to {item.maxGroupSize} travellers</span>
                     </div>
                     <p className="trip-plan-description">{item.description}</p>
                     <button className="itinerary-link" type="button" onClick={() => setSelectedItinerary(item)}>
@@ -904,7 +902,6 @@ function App() {
                           <p className="package-card-meta">
                             <span>{items.length} {items.length === 1 ? "plan" : "plans"}</span>
                             <span>{item.duration}</span>
-                            <span>Max {item.maxGroupSize} travellers</span>
                           </p>
                           <ul className="package-card-inclusions" aria-label="Included in this package">
                             {items.map((plan) => <li key={plan._id}>{plan.plan || "Standard"}</li>)}

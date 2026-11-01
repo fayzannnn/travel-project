@@ -54,7 +54,7 @@ function nestSeedPackages(seedPlans) {
       imageSourceUrl: first.imageSourceUrl,
       imageLicense: first.imageLicense,
       imageLicenseUrl: first.imageLicenseUrl,
-      plans: plans.map(({ plan, title, description, duration, stayType, itinerary, price, maxGroupSize }) => ({
+      plans: plans.map(({ plan, title, description, duration, stayType, itinerary, price }) => ({
         plan: plan || "Standard",
         title,
         description,
@@ -62,7 +62,6 @@ function nestSeedPackages(seedPlans) {
         stayType,
         itinerary,
         price,
-        maxGroupSize,
       })),
       sortOrder: Math.min(...plans.map((item) => item.sortOrder || 0)),
       active: plans.some((item) => item.active !== false),
@@ -79,7 +78,6 @@ function legacyPlanValues(item) {
     stayType: item.stayType,
     itinerary: item.itinerary || [],
     price: item.price,
-    maxGroupSize: item.maxGroupSize,
   };
 }
 
@@ -132,7 +130,6 @@ async function migrateFlatPackages() {
             stayType: "",
             itinerary: "",
             price: "",
-            maxGroupSize: "",
           },
         }),
       },
@@ -236,12 +233,23 @@ async function startServer() {
     console.info("Inserted the initial homepage content.");
   } else {
     const homepageContent = await HomepageContent.findOne({ key: "main" });
+    let homepageChanged = false;
     if (homepageContent?.brandName === "Travel Khor") {
       homepageContent.brandName = defaultHomepage.brandName;
       homepageContent.heroDescription = homepageContent.heroDescription.replace(
         "Travel Khor",
         defaultHomepage.brandName,
       );
+      homepageChanged = true;
+    }
+    const legacyGroupSizeCopy =
+      "Capped at 12 travellers per trip, so the itinerary can flex around the group instead of a bus schedule.";
+    const smallGroupValue = homepageContent?.values.find((value) => value.copy === legacyGroupSizeCopy);
+    if (smallGroupValue) {
+      smallGroupValue.copy = defaultHomepage.values.find((value) => value.title === "Small groups only").copy;
+      homepageChanged = true;
+    }
+    if (homepageChanged) {
       await homepageContent.save();
     }
   }

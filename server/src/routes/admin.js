@@ -230,12 +230,8 @@ function validatePackage(body) {
         });
       }
       const price = Number(plan.price);
-      const maxGroupSize = Number(plan.maxGroupSize);
       if (!Number.isInteger(price) || price < 1 || price > 1000000) {
         errors.push(`Plan ${planIndex + 1} price must be a whole number between ₹1 and ₹10,00,000.`);
-      }
-      if (!Number.isInteger(maxGroupSize) || maxGroupSize < 1 || maxGroupSize > 12) {
-        errors.push(`Plan ${planIndex + 1} maximum group size must be between 1 and 12.`);
       }
     });
   }
@@ -278,7 +274,6 @@ function packageValues(body) {
         description: day.description.trim(),
       })),
       price: Number(plan.price),
-      maxGroupSize: Number(plan.maxGroupSize),
     })),
     seasonalLabel: typeof body.seasonalLabel === "string" ? body.seasonalLabel.trim() : "",
     active: body.active !== false,

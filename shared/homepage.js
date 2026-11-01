@@ -24,7 +24,7 @@ export const defaultHomepage = {
     },
     {
       title: "Small groups only",
-      copy: "Capped at 12 travellers per trip, so the itinerary can flex around the group instead of a bus schedule.",
+      copy: "Small groups let the itinerary flex around the people travelling instead of a bus schedule.",
     },
   ],
   packagesHeading: "Current packages",

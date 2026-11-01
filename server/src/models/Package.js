@@ -17,7 +17,6 @@ const planSchema = new mongoose.Schema({
   stayType: { type: String, required: true, trim: true, maxlength: 100 },
   itinerary: { type: [itineraryDaySchema], required: true },
   price: { type: Number, required: true, min: 1, max: 1000000 },
-  maxGroupSize: { type: Number, required: true, min: 1, max: 12 },
 });
 
 const packageSchema = new mongoose.Schema(

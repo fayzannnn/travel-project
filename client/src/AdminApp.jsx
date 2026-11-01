@@ -26,7 +26,6 @@ function blankPlan(plan = "Standard") {
     stayType: "",
     itinerary: [{ day: 1, title: "", description: "" }],
     price: "",
-    maxGroupSize: 12,
   };
 }
 
@@ -395,7 +394,6 @@ function PackageEditor({ item, onCancel, onSaved }) {
         stayType: item.stayType,
         itinerary: item.itinerary || [],
         price: item.price,
-        maxGroupSize: item.maxGroupSize,
       }],
       seasonalLabel: item.seasonalLabel || "",
     }
@@ -427,7 +425,6 @@ function PackageEditor({ item, onCancel, onSaved }) {
       plans: form.plans.map((plan) => ({
         ...plan,
         price: Number(plan.price),
-        maxGroupSize: Number(plan.maxGroupSize),
         itinerary: plan.itinerary.map((day, index) => ({ ...day, day: index + 1 })),
       })),
     };
@@ -497,7 +494,6 @@ function PackageEditor({ item, onCancel, onSaved }) {
                 <label>Duration<input value={plan.duration} onChange={(event) => updatePlan(planIndex, "duration", event.target.value)} maxLength="80" required /></label>
                 <label>Stay type<input value={plan.stayType} onChange={(event) => updatePlan(planIndex, "stayType", event.target.value)} maxLength="100" required /></label>
                 <label>Price per person (₹)<input type="number" min="1" max="1000000" step="1" value={plan.price} onChange={(event) => updatePlan(planIndex, "price", event.target.value)} required /></label>
-                <label>Minimum group size<input type="number" min="1" max="12" step="1" value={plan.maxGroupSize} onChange={(event) => updatePlan(planIndex, "maxGroupSize", event.target.value)} required /></label>
               </div>
               <div className="admin-itinerary-editor">
                 <div className="admin-panel-heading">

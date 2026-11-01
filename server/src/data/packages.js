@@ -25,7 +25,6 @@ export const seedPackages = [
       { day: 5, title: "Breakfast and departure", description: "Have breakfast, check out, and begin the return journey. Your trip lead will confirm transport timing with the group." },
     ],
     price: 8499,
-    maxGroupSize: 12,
     sortOrder: 0,
   },
   {
@@ -54,7 +53,6 @@ export const seedPackages = [
       { day: 5, title: "Breakfast and departure", description: "Enjoy breakfast, check out, and begin the return journey with transport timing coordinated by your trip lead." },
     ],
     price: 12999,
-    maxGroupSize: 10,
     sortOrder: 1,
   },
   {
@@ -84,7 +82,6 @@ export const seedPackages = [
       { day: 6, title: "Breakfast and departure", description: "Enjoy a final breakfast, check out, and depart with return transport arranged for your group." },
     ],
     price: 19999,
-    maxGroupSize: 8,
     sortOrder: 2,
   },
   {
@@ -112,7 +109,6 @@ export const seedPackages = [
       { day: 4, title: "Breakfast and departure", description: "Check out after breakfast and begin the return journey. Activity timing depends on weather and local operating conditions." },
     ],
     price: 6999,
-    maxGroupSize: 10,
     sortOrder: 1,
   },
   {
@@ -139,7 +135,6 @@ export const seedPackages = [
       { day: 4, title: "Coastal breakfast and departure", description: "Enjoy breakfast, check out, and depart. The trip lead will confirm transport timing with the group." },
     ],
     price: 7299,
-    maxGroupSize: 12,
     sortOrder: 2,
   },
   {
@@ -169,7 +164,6 @@ export const seedPackages = [
       { day: 6, title: "Breakfast and departure", description: "Check out after breakfast and begin the return journey with your group." },
     ],
     price: 9999,
-    maxGroupSize: 12,
     sortOrder: 3,
   },
 ];
