@@ -24,7 +24,7 @@ function blankPlan(plan = "Standard") {
     description: "",
     duration: "",
     stayType: "",
-    itinerary: [{ day: 1, title: "", description: "" }],
+    itinerary: [{ day: 1, title: "", destination: "", activities: [""], description: "", meals: "", accommodation: "" }],
     price: "",
   };
 }
@@ -381,12 +381,12 @@ function ReviewsPanel() {
   );
 }
 
-function PackageEditor({ item, onCancel, onSaved }) {
+function PackageEditor({ item, packages = [], onCancel, onSaved }) {
   const [form, setForm] = useState(item
     ? {
       ...item,
       destination: item.destination || item.title,
-      plans: item.plans?.length ? item.plans : [{
+      plans: (item.plans?.length ? item.plans : [{
         ...blankPlan(item.plan || "Standard"),
         title: item.title,
         description: item.description,
@@ -394,7 +394,16 @@ function PackageEditor({ item, onCancel, onSaved }) {
         stayType: item.stayType,
         itinerary: item.itinerary || [],
         price: item.price,
-      }],
+      }]).map((plan) => ({
+        ...plan,
+        itinerary: (plan.itinerary || []).map((day) => ({
+          ...day,
+          destination: day.destination || "",
+          activities: Array.isArray(day.activities) && day.activities.length ? day.activities : [""],
+          meals: day.meals || "",
+          accommodation: day.accommodation || "",
+        })),
+      })),
       seasonalLabel: item.seasonalLabel || "",
     }
     : packageBlank);
@@ -413,6 +422,15 @@ function PackageEditor({ item, onCancel, onSaved }) {
 
   function updatePlanItinerary(index, updateDays) {
     updatePlan(index, "itinerary", updateDays(form.plans[index].itinerary));
+  }
+
+  function updateActivity(planIndex, dayIndex, activityIndex, value) {
+    updatePlanItinerary(planIndex, (days) => days.map((day, index) => index === dayIndex
+      ? {
+        ...day,
+        activities: day.activities.map((activity, index) => index === activityIndex ? value : activity),
+      }
+      : day));
   }
 
   async function handleSubmit(event) {
@@ -499,6 +517,11 @@ function PackageEditor({ item, onCancel, onSaved }) {
                 <div className="admin-panel-heading">
                   <div><h4>{plan.plan} itinerary</h4><p>These are the itinerary details shown when travellers compare plans.</p></div>
                 </div>
+                <ItineraryCopyControls
+                  packages={packages.filter((packageItem) => String(packageItem._id) !== String(item?._id))}
+                  targetPlan={plan}
+                  onCopy={(itinerary) => updatePlanItinerary(planIndex, () => itinerary)}
+                />
                 {plan.itinerary.map((day, dayIndex) => (
                   <div className="admin-itinerary-day" key={`${plan.plan}-day-${dayIndex}`}>
                     <div className="admin-itinerary-day-heading">
@@ -512,15 +535,46 @@ function PackageEditor({ item, onCancel, onSaved }) {
                         Remove day
                       </button>
                     </div>
+                    <label>Destination<input value={day.destination} onChange={(event) => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex ? { ...entry, destination: event.target.value } : entry))} maxLength="120" placeholder="Destination or area" /></label>
                     <label>Day title<input value={day.title} onChange={(event) => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex ? { ...entry, title: event.target.value } : entry))} maxLength="120" placeholder={`Day ${dayIndex + 1}`} required /></label>
                     <label>Day details<textarea value={day.description} onChange={(event) => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex ? { ...entry, description: event.target.value } : entry))} maxLength="1000" rows="3" required /></label>
+                    <div className="admin-itinerary-activities">
+                      <strong>Activities</strong>
+                      {day.activities.map((activity, activityIndex) => (
+                        <div className="admin-inline-row" key={`activity-${activityIndex}`}>
+                          <label>Activity {activityIndex + 1}<input value={activity} onChange={(event) => updateActivity(planIndex, dayIndex, activityIndex, event.target.value)} maxLength="200" /></label>
+                          <button
+                            className="admin-button admin-button-danger"
+                            type="button"
+                            disabled={day.activities.length <= 1}
+                            onClick={() => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex
+                              ? { ...entry, activities: entry.activities.filter((_, itemIndex) => itemIndex !== activityIndex) }
+                              : entry))}
+                          >
+                            Remove activity
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        className="admin-button"
+                        type="button"
+                        disabled={day.activities.length >= 20}
+                        onClick={() => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex
+                          ? { ...entry, activities: [...entry.activities, ""] }
+                          : entry))}
+                      >
+                        Add activity
+                      </button>
+                    </div>
+                    <label>Meals<input value={day.meals} onChange={(event) => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex ? { ...entry, meals: event.target.value } : entry))} maxLength="200" placeholder="e.g. Breakfast and dinner" /></label>
+                    <label>Accommodation<input value={day.accommodation} onChange={(event) => updatePlanItinerary(planIndex, (days) => days.map((entry, index) => index === dayIndex ? { ...entry, accommodation: event.target.value } : entry))} maxLength="200" placeholder="e.g. Riverside guesthouse" /></label>
                   </div>
                 ))}
                 <button
                   className="admin-button"
                   type="button"
                   disabled={plan.itinerary.length >= 14}
-                  onClick={() => updatePlanItinerary(planIndex, (days) => [...days, { day: days.length + 1, title: "", description: "" }])}
+                  onClick={() => updatePlanItinerary(planIndex, (days) => [...days, { day: days.length + 1, title: "", destination: "", activities: [""], description: "", meals: "", accommodation: "" }])}
                 >
                   Add itinerary day
                 </button>
@@ -546,17 +600,99 @@ function PackageEditor({ item, onCancel, onSaved }) {
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
       <div className="admin-form-actions">
-        <button className="admin-button admin-button-primary" type="submit" disabled={saving}>{saving ? "Saving..." : "Save package"}</button>
+        <button className="admin-button admin-button-primary" type="submit" disabled={saving}>{saving ? "Saving..." : item ? "Save Changes" : "Save package"}</button>
         <button className="admin-button" type="button" onClick={onCancel}>Cancel</button>
       </div>
     </form>
   );
 }
 
+function ItineraryCopyControls({ packages, targetPlan, onCopy }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [sourceId, setSourceId] = useState("");
+  const sourcePackage = packages.find((packageItem) => String(packageItem._id) === sourceId);
+  const [sourcePlanId, setSourcePlanId] = useState("");
+  const sourcePlan = sourcePackage?.plans.find((plan) => String(plan._id || plan.plan) === sourcePlanId)
+    || sourcePackage?.plans.find((plan) => plan.plan === targetPlan.plan)
+    || sourcePackage?.plans[0];
+
+  function chooseSource(packageId) {
+    setSourceId(packageId);
+    const packageItem = packages.find((candidate) => String(candidate._id) === packageId);
+    setSourcePlanId(String(packageItem?.plans[0]?._id || packageItem?.plans[0]?.plan || ""));
+  }
+
+  function copyItinerary() {
+    if (!sourcePlan?.itinerary?.length) return;
+    if (targetPlan.itinerary.length && !window.confirm(`Replace the ${targetPlan.plan} itinerary with the selected source itinerary? Unsaved itinerary edits in this plan will be replaced.`)) {
+      return;
+    }
+    onCopy(sourcePlan.itinerary.map((day, index) => ({
+      ...day,
+      day: index + 1,
+      destination: day.destination || "",
+      activities: Array.isArray(day.activities) && day.activities.length ? [...day.activities] : [""],
+      meals: day.meals || "",
+      accommodation: day.accommodation || "",
+    })));
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="admin-itinerary-copy">
+      <button className="admin-button" type="button" onClick={() => setIsOpen((open) => !open)}>
+        {isOpen ? "Close itinerary copier" : "Copy Itinerary"}
+      </button>
+      {isOpen && (
+        <div className="admin-itinerary-copy-panel">
+          {packages.length === 0 ? <p className="admin-muted">No other packages are available as itinerary sources.</p> : (
+            <>
+              <label>Source package
+                <select value={sourceId} onChange={(event) => chooseSource(event.target.value)} required>
+                  <option value="">Choose a package</option>
+                  {packages.map((packageItem) => <option key={packageItem._id} value={packageItem._id}>{packageItem.destination}</option>)}
+                </select>
+              </label>
+              {sourcePackage && (
+                <>
+                  <label>Source plan
+                    <select value={sourcePlan ? String(sourcePlan._id || sourcePlan.plan) : ""} onChange={(event) => setSourcePlanId(event.target.value)}>
+                      {sourcePackage.plans.map((plan) => <option key={plan._id || plan.plan} value={String(plan._id || plan.plan)}>{plan.plan}</option>)}
+                    </select>
+                  </label>
+                  <div className="admin-itinerary-preview">
+                    <h5>{sourcePackage.destination} · {sourcePlan?.plan} itinerary</h5>
+                    {sourcePlan?.itinerary?.map((day, index) => (
+                      <div key={`${day.day}-${index}`}>
+                        <strong>Day {day.day}: {day.title}</strong>
+                        {day.destination && <p><b>Destination:</b> {day.destination}</p>}
+                        <p>{day.description}</p>
+                        {day.activities?.filter(Boolean).length > 0 && <p><b>Activities:</b> {day.activities.filter(Boolean).join(", ")}</p>}
+                        {day.meals && <p><b>Meals:</b> {day.meals}</p>}
+                        {day.accommodation && <p><b>Accommodation:</b> {day.accommodation}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <button className="admin-button admin-button-primary" type="button" disabled={!sourcePlan?.itinerary?.length} onClick={copyItinerary}>
+                    Copy to this {targetPlan.plan} plan
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PackagesPanel() {
   const [packages, setPackages] = useState([]);
-  const [editing, setEditing] = useState(undefined);
+  const [editingIds, setEditingIds] = useState(() => new Set());
+  const [mountedEditorIds, setMountedEditorIds] = useState(() => new Set());
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function loadPackages() {
     try {
@@ -580,8 +716,49 @@ function PackagesPanel() {
     }
   }
 
-  async function saved() {
-    setEditing(undefined);
+  function toggleEditor(id) {
+    setNotice("");
+    if (editingIds.has(id)) {
+      setEditingIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+      return;
+    }
+    setMountedEditorIds((current) => new Set(current).add(id));
+    setEditingIds((current) => new Set(current).add(id));
+  }
+
+  function cancelEditor(id) {
+    setEditingIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+    setMountedEditorIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  async function saved(id) {
+    if (id) {
+      setEditingIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+      setMountedEditorIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    } else {
+      setAdding(false);
+    }
+    setNotice("Package changes saved successfully.");
     await loadPackages();
   }
 
@@ -589,19 +766,39 @@ function PackagesPanel() {
     <section className="admin-panel">
       <div className="admin-panel-heading">
         <div><h2>Tour packages</h2><p>Manage each destination once, with its pricing plans and itineraries nested inside.</p></div>
-        <button className="admin-button admin-button-primary" type="button" onClick={() => setEditing(null)}>Add destination package</button>
+        <button className="admin-button admin-button-primary" type="button" onClick={() => setAdding(true)}>Add destination package</button>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
-      {editing !== undefined && <PackageEditor item={editing} onCancel={() => setEditing(undefined)} onSaved={saved} />}
+      {notice && <p className="admin-success" role="status">{notice}</p>}
+      {adding && <PackageEditor packages={packages} onCancel={() => setAdding(false)} onSaved={() => saved()} />}
       {packages.length === 0 ? <p className="admin-empty">No packages found.</p> : (
         <div className="admin-package-list">
           {packages.map((item) => (
-            <article className="admin-package-card" key={item._id}>
-              <div><span className={`status-pill ${item.active ? "status-published" : "status-closed"}`}>{item.active ? "Published" : "Unpublished"}</span><h3>{item.destination}</h3><p>{item.region} · {item.plans.map((plan) => `${plan.plan}: ₹${plan.price.toLocaleString("en-IN")}`).join(" · ")}</p></div>
-              <div className="admin-card-actions">
-                <button className="admin-button" type="button" onClick={() => setEditing(item)}>Edit</button>
-                {item.active && <button className="admin-button admin-button-danger" type="button" onClick={() => unpublish(item)}>Unpublish</button>}
+            <article className={`admin-package-card${editingIds.has(String(item._id)) ? " is-editing" : ""}`} key={item._id}>
+              <div className="admin-package-summary">
+                <div><span className={`status-pill ${item.active ? "status-published" : "status-closed"}`}>{item.active ? "Published" : "Unpublished"}</span><h3>{item.destination}</h3><p>{item.region} · {item.plans.map((plan) => `${plan.plan}: ₹${plan.price.toLocaleString("en-IN")}`).join(" · ")}</p></div>
+                <div className="admin-card-actions">
+                  <button className="admin-button" type="button" aria-expanded={editingIds.has(String(item._id))} onClick={() => toggleEditor(String(item._id))}>{editingIds.has(String(item._id)) ? "Close editor" : "Edit"}</button>
+                  {item.active && <button className="admin-button admin-button-danger" type="button" onClick={() => unpublish(item)}>Unpublish</button>}
+                </div>
               </div>
+              {mountedEditorIds.has(String(item._id)) && (
+                <div
+                  className={`admin-package-editor${editingIds.has(String(item._id)) ? " is-expanded" : ""}`}
+                  aria-hidden={!editingIds.has(String(item._id))}
+                  inert={editingIds.has(String(item._id)) ? undefined : ""}
+                >
+                  <div className="admin-package-editor-content">
+                    <PackageEditor
+                      key={item._id}
+                      item={item}
+                      packages={packages}
+                      onCancel={() => cancelEditor(String(item._id))}
+                      onSaved={() => saved(String(item._id))}
+                    />
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>

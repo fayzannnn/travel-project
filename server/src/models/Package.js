@@ -5,6 +5,10 @@ const itineraryDaySchema = new mongoose.Schema(
     day: { type: Number, required: true, min: 1, max: 14 },
     title: { type: String, required: true, trim: true, maxlength: 120 },
     description: { type: String, required: true, trim: true, maxlength: 1000 },
+    destination: { type: String, trim: true, maxlength: 120, default: "" },
+    activities: { type: [{ type: String, trim: true, maxlength: 200 }], default: [] },
+    meals: { type: String, trim: true, maxlength: 200, default: "" },
+    accommodation: { type: String, trim: true, maxlength: 200, default: "" },
   },
   { _id: false },
 );

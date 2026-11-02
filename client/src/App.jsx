@@ -261,7 +261,13 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
           const dayLabel = `DAY ${cleanText(day.day || index + 1)}`;
           const titleLines = pdf.splitTextToSize(cleanText(day.title), contentWidth - 27);
           const descriptionLines = pdf.splitTextToSize(cleanText(day.description), contentWidth - 10);
-          const blockHeight = 12 + titleLines.length * 5 + descriptionLines.length * 4.5;
+          const extraDetails = [
+            day.destination && `Destination: ${day.destination}`,
+            day.activities?.filter(Boolean).length && `Activities: ${day.activities.filter(Boolean).join(", ")}`,
+            day.meals && `Meals: ${day.meals}`,
+            day.accommodation && `Accommodation: ${day.accommodation}`,
+          ].filter(Boolean).flatMap((detail) => pdf.splitTextToSize(cleanText(detail), contentWidth - 10));
+          const blockHeight = 12 + titleLines.length * 5 + descriptionLines.length * 4.5 + extraDetails.length * 4.5;
           ensureSpace(blockHeight + 4);
 
           pdf.setFillColor(...colors.paper);
@@ -280,6 +286,10 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
           pdf.setFont("helvetica", "normal");
           pdf.setFontSize(8.5);
           pdf.text(descriptionLines, margin + 5, y + 15 + titleLines.length * 5);
+          if (extraDetails.length) {
+            pdf.setFontSize(8);
+            pdf.text(extraDetails, margin + 5, y + 15 + titleLines.length * 5 + descriptionLines.length * 4.5);
+          }
           y += blockHeight + 4;
         });
       }
@@ -356,7 +366,16 @@ function TripPlansDialog({ items, onClose, onInquiry }) {
                   {selectedItinerary.itinerary.map((day, index) => (
                     <li key={`${selectedItinerary.planId || selectedItinerary.plan}-${day.day}-${day.title}`}>
                       <span>Day {day.day || index + 1}</span>
-                      <div><h4>{day.title}</h4><p>{day.description}</p></div>
+                      <div className="itinerary-day-details">
+                        <h4>{day.title}</h4>
+                        <p>{day.description}</p>
+                        {day.destination && <p><b>Destination:</b> {day.destination}</p>}
+                        {day.activities?.filter(Boolean).length > 0 && (
+                          <p><b>Activities:</b> {day.activities.filter(Boolean).join(", ")}</p>
+                        )}
+                        {day.meals && <p><b>Meals:</b> {day.meals}</p>}
+                        {day.accommodation && <p><b>Accommodation:</b> {day.accommodation}</p>}
+                      </div>
                     </li>
                   ))}
                 </ol>

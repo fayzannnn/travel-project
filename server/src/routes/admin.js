@@ -218,6 +218,10 @@ function validatePackage(body) {
         errors.push(`Add an itinerary with between 1 and 14 days to plan ${planIndex + 1}.`);
       } else {
         plan.itinerary.forEach((day, index) => {
+          if (!day || typeof day !== "object" || Array.isArray(day)) {
+            errors.push(`Plan ${planIndex + 1}, day ${index + 1} must be a valid itinerary day.`);
+            return;
+          }
           if (!Number.isInteger(Number(day.day)) || Number(day.day) !== index + 1) {
             errors.push(`Plan ${planIndex + 1} itinerary days must be numbered consecutively starting at day 1.`);
           }
@@ -226,6 +230,18 @@ function validatePackage(body) {
           }
           if (typeof day.description !== "string" || !day.description.trim() || day.description.trim().length > 1000) {
             errors.push(`Plan ${planIndex + 1}, day ${index + 1} needs details of 1 to 1000 characters.`);
+          }
+          for (const field of ["destination", "meals", "accommodation"]) {
+            if (day[field] !== undefined &&
+                (typeof day[field] !== "string" || day[field].trim().length > 200 ||
+                  (field === "destination" && day[field].trim().length > 120))) {
+              errors.push(`Plan ${planIndex + 1}, day ${index + 1} ${field} is too long or invalid.`);
+            }
+          }
+          if (day.activities !== undefined &&
+              (!Array.isArray(day.activities) || day.activities.length > 20 ||
+                day.activities.some((activity) => typeof activity !== "string" || activity.trim().length > 200))) {
+            errors.push(`Plan ${planIndex + 1}, day ${index + 1} activities must be a list of up to 20 items, each 200 characters or fewer.`);
           }
         });
       }
@@ -272,6 +288,10 @@ function packageValues(body) {
         day: index + 1,
         title: day.title.trim(),
         description: day.description.trim(),
+        destination: typeof day.destination === "string" ? day.destination.trim() : "",
+        activities: Array.isArray(day.activities) ? day.activities.map((activity) => activity.trim()).filter(Boolean) : [],
+        meals: typeof day.meals === "string" ? day.meals.trim() : "",
+        accommodation: typeof day.accommodation === "string" ? day.accommodation.trim() : "",
       })),
       price: Number(plan.price),
     })),
