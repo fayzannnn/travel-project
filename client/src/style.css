@@ -164,6 +164,9 @@ img { max-width: 100%; display: block; }
 .voices { padding: 90px 0; }
 .voices .section-head { margin-bottom: 44px; }
 .voice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; border: 1px solid var(--line-light); background: var(--line-light); }
+.voice-grid.review-carousel { grid-template-columns: none; grid-auto-columns: minmax(min(520px, 100%), 520px); grid-auto-flow: column; gap: 20px; overflow-x: auto; overscroll-behavior-x: contain; padding: 14px 2px 16px; border: 0; background: transparent; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
+.voice-grid.review-carousel::-webkit-scrollbar { display: none; }
+.voice-grid.review-carousel .voice { min-width: 0; border: 1px solid var(--line-light); scroll-snap-align: start; }
 .voice { padding: 36px; background: var(--paper); }
 .voice .quote { max-width: 36ch; font-size: 1.2rem; font-weight: 500; line-height: 1.45; }
 .voice .who { margin-top: 22px; color: var(--ink-soft); font-size: .88rem; }

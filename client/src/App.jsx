@@ -654,6 +654,8 @@ function App() {
   const [packageSearch, setPackageSearch] = useState("");
   const packageCarouselRef = useRef(null);
   const [packageScrollPosition, setPackageScrollPosition] = useState({ canScrollBack: false, canScrollForward: false });
+  const reviewCarouselRef = useRef(null);
+  const [reviewScrollPosition, setReviewScrollPosition] = useState({ canScrollBack: false, canScrollForward: false });
 
   useEffect(() => {
     let active = true;
@@ -807,6 +809,37 @@ function App() {
 
   function scrollPackages(direction) {
     const carousel = packageCarouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({
+      left: direction * Math.max(carousel.clientWidth * 0.85, 300),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }
+
+  useEffect(() => {
+    const carousel = reviewCarouselRef.current;
+    if (!carousel) return undefined;
+
+    function updateScrollPosition() {
+      const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+      setReviewScrollPosition({
+        canScrollBack: carousel.scrollLeft > 1,
+        canScrollForward: maxScroll - carousel.scrollLeft > 1,
+      });
+    }
+
+    carousel.scrollLeft = 0;
+    updateScrollPosition();
+    carousel.addEventListener("scroll", updateScrollPosition, { passive: true });
+    window.addEventListener("resize", updateScrollPosition);
+    return () => {
+      carousel.removeEventListener("scroll", updateScrollPosition);
+      window.removeEventListener("resize", updateScrollPosition);
+    };
+  }, [content.testimonials.length, travellerReviews.length]);
+
+  function scrollReviews(direction) {
+    const carousel = reviewCarouselRef.current;
     if (!carousel) return;
     carousel.scrollBy({
       left: direction * Math.max(carousel.clientWidth * 0.85, 300),
@@ -1047,7 +1080,34 @@ function App() {
         <section className="voices" id="voices">
           <div className="wrap">
             <div className="section-head"><h2>{content.testimonialsHeading}</h2></div>
-            <div className="voice-grid">
+            <div className="package-carousel-controls" role="group" aria-label="Scroll reviews">
+              <button
+                className="package-carousel-arrow"
+                type="button"
+                aria-label="Show previous reviews"
+                disabled={!reviewScrollPosition.canScrollBack}
+                onClick={() => scrollReviews(-1)}
+              >
+                <span aria-hidden="true">←</span>
+              </button>
+              <button
+                className="package-carousel-arrow"
+                type="button"
+                aria-label="Show next reviews"
+                disabled={!reviewScrollPosition.canScrollForward}
+                onClick={() => scrollReviews(1)}
+              >
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <div
+              className="voice-grid review-carousel"
+              id="review-carousel"
+              ref={reviewCarouselRef}
+              role="region"
+              aria-label="Traveller reviews"
+              tabIndex={0}
+            >
               {content.testimonials.map((testimonial) => (
                 <article className="voice" key={testimonial.name}>
                   <p className="quote">“{testimonial.quote}”</p>
