@@ -24,9 +24,11 @@ const app = express();
 const port = Number(process.env.PORT) || 5000;
 const clientDistPath = fileURLToPath(new URL("../../client/dist", import.meta.url));
 const clientIndexPath = join(clientDistPath, "index.html");
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim());
+const allowedOrigins = [...new Set([
+  ...(process.env.CLIENT_ORIGIN || "").split(",").map((origin) => origin.trim()).filter(Boolean),
+  "http://localhost:5173",
+  "http://localhost:3000",
+])];
 
 function nestSeedPackages(seedPlans) {
   const grouped = new Map();
@@ -177,12 +179,9 @@ app.use("/api/admin", (request, response, next) => {
   next();
 });
 
-app.get("/api/health", (_request, response) => {
-  response.json({
-    status: "ok",
-    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-  });
-});
+const healthCheck = (_request, response) => response.status(200).type("text/plain").send("ok");
+app.get("/health", healthCheck);
+app.get("/api/health", healthCheck);
 app.use("/api/packages", packageRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/reviews", reviewRoutes);

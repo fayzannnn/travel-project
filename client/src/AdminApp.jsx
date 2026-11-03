@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import { adminRequest } from "./api.js";
+import {
+  adminRequest,
+  ensureApiReady,
+  retryApiConnection,
+  useApiStatus,
+} from "./api.js";
 import { defaultHomepage } from "../../shared/homepage.js";
+
+function ApiWakeMessage({ elapsed }) {
+  if (elapsed < 5000) return null;
+  return <p className="api-wait-message" role="status">Waking up our servers, this can take up to a minute...</p>;
+}
 
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -74,9 +84,10 @@ const homepageKeys = [
   "ctaHeading", "footerAbout", "footerTagline", "contactEmail", "contactPhone", "contactLocation",
 ];
 
-function Login({ onLogin }) {
+function Login({ onLogin, sessionChecking }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const apiStatus = useApiStatus();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -84,6 +95,10 @@ function Login({ onLogin }) {
     setSubmitting(true);
     const form = new FormData(event.currentTarget);
     try {
+      const isReady = await ensureApiReady({ force: true });
+      if (!isReady) {
+        throw new Error("We couldn't connect to our server. Please try again.");
+      }
       const result = await adminRequest("/auth/login", {
         method: "POST",
         body: JSON.stringify({
@@ -109,9 +124,16 @@ function Login({ onLogin }) {
         <label>Email<input name="email" type="email" autoComplete="username" maxLength="254" required /></label>
         <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="admin-error" role="alert">{error}</p>}
-        <button className="admin-button admin-button-primary" type="submit" disabled={submitting}>
-          {submitting ? "Signing in..." : "Sign in"}
+        <button className="admin-button admin-button-primary" type="submit" disabled={submitting || sessionChecking || apiStatus !== "ready"}>
+          {submitting || apiStatus !== "ready"
+            ? "Connecting to server..."
+            : sessionChecking ? "Checking admin session..." : "Sign in"}
         </button>
+        {apiStatus === "unavailable" && (
+          <button className="connection-retry" type="button" onClick={retryApiConnection}>
+            Reconnect to server
+          </button>
+        )}
       </form>
     </main>
   );
@@ -126,15 +148,17 @@ function InquiryPanel({ onFollowUpsChanged, refreshKey }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [waitedMs, setWaitedMs] = useState(0);
 
   async function loadInquiries() {
     setLoading(true);
     setError("");
+    setWaitedMs(0);
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (query.trim()) params.set("q", query.trim());
     try {
-      const result = await adminRequest(`/inquiries?${params.toString()}`);
+      const result = await adminRequest(`/inquiries?${params.toString()}`, {}, { onRetry: setWaitedMs });
       setInquiries(result.data);
     } catch (loadError) {
       setError(loadError.message);
@@ -208,6 +232,8 @@ function InquiryPanel({ onFollowUpsChanged, refreshKey }) {
         <button className="admin-button" type="submit">Search</button>
       </form>
       {error && <p className="admin-error" role="alert">{error}</p>}
+      {error && <button className="connection-retry" type="button" onClick={loadInquiries}>Try again</button>}
+      {loading && <ApiWakeMessage elapsed={waitedMs} />}
       {loading ? <p className="admin-muted">Loading inquiries...</p> : inquiries.length === 0 ? (
         <p className="admin-empty">No inquiries match these filters.</p>
       ) : (
@@ -287,14 +313,16 @@ function ReviewsPanel() {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [waitedMs, setWaitedMs] = useState(0);
 
   async function loadReviews() {
     setLoading(true);
     setError("");
+    setWaitedMs(0);
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     try {
-      const result = await adminRequest(`/reviews?${params.toString()}`);
+      const result = await adminRequest(`/reviews?${params.toString()}`, {}, { onRetry: setWaitedMs });
       setReviews(result.data);
     } catch (loadError) {
       setError(loadError.message);
@@ -335,6 +363,8 @@ function ReviewsPanel() {
         </select>
       </label>
       {error && <p className="admin-error" role="alert">{error}</p>}
+      {error && <button className="connection-retry" type="button" onClick={loadReviews}>Try again</button>}
+      {loading && <ApiWakeMessage elapsed={waitedMs} />}
       {loading ? <p className="admin-muted">Loading traveller reviews...</p> : reviews.length === 0 ? (
         <p className="admin-empty">No reviews match this status.</p>
       ) : (
@@ -693,14 +723,20 @@ function PackagesPanel() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [waitedMs, setWaitedMs] = useState(0);
 
   async function loadPackages() {
+    setLoading(true);
+    setWaitedMs(0);
     try {
-      const result = await adminRequest("/packages");
+      const result = await adminRequest("/packages", {}, { onRetry: setWaitedMs });
       setPackages(result.data);
       setError("");
     } catch (loadError) {
       setError(loadError.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -769,9 +805,11 @@ function PackagesPanel() {
         <button className="admin-button admin-button-primary" type="button" onClick={() => setAdding(true)}>Add destination package</button>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
+      {error && <button className="connection-retry" type="button" onClick={loadPackages}>Try again</button>}
+      {loading && <ApiWakeMessage elapsed={waitedMs} />}
       {notice && <p className="admin-success" role="status">{notice}</p>}
       {adding && <PackageEditor packages={packages} onCancel={() => setAdding(false)} onSaved={() => saved()} />}
-      {packages.length === 0 ? <p className="admin-empty">No packages found.</p> : (
+      {loading ? <p className="admin-muted">Loading packages...</p> : packages.length === 0 ? <p className="admin-empty">No packages found.</p> : (
         <div className="admin-package-list">
           {packages.map((item) => (
             <article className={`admin-package-card${editingIds.has(String(item._id)) ? " is-editing" : ""}`} key={item._id}>
@@ -813,12 +851,24 @@ function HomePagePanel() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [waitedMs, setWaitedMs] = useState(0);
+
+  async function loadHomepage() {
+    setLoading(true);
+    setError("");
+    setWaitedMs(0);
+    try {
+      const result = await adminRequest("/homepage", {}, { onRetry: setWaitedMs });
+      setContent(result.data || defaultHomepage);
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    adminRequest("/homepage")
-      .then((result) => setContent(result.data || defaultHomepage))
-      .catch((loadError) => setError(loadError.message))
-      .finally(() => setLoading(false));
+    loadHomepage();
   }, []);
 
   function update(field, value) {
@@ -854,7 +904,17 @@ function HomePagePanel() {
     }
   }
 
-  if (loading) return <p className="admin-muted">Loading homepage content...</p>;
+  if (loading) {
+    return (
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div><h2>Homepage content</h2><p>Edit site text, stats, reviews, planning steps, and contact information.</p></div>
+        </div>
+        <ApiWakeMessage elapsed={waitedMs} />
+        <p className="admin-muted">Loading homepage content...</p>
+      </section>
+    );
+  }
 
   return (
     <section className="admin-panel">
@@ -862,6 +922,7 @@ function HomePagePanel() {
         <div><h2>Homepage content</h2><p>Edit site text, stats, reviews, planning steps, and contact information.</p></div>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
+      {error && <button className="connection-retry" type="button" onClick={loadHomepage}>Try again</button>}
       <form className="admin-home-form" onSubmit={handleSubmit}>
         <section className="admin-form-card">
           <h3>Brand, hero, and packages</h3>
@@ -1114,9 +1175,10 @@ function AdminDashboard({ admin, onLogout }) {
 export default function AdminApp() {
   const [auth, setAuth] = useState({ loading: true, admin: null });
   const [authError, setAuthError] = useState("");
+  const [authWaitMs, setAuthWaitMs] = useState(0);
 
   useEffect(() => {
-    adminRequest("/auth/me")
+    adminRequest("/auth/me", {}, { onRetry: setAuthWaitMs })
       .then((result) => setAuth({ loading: false, admin: result.data }))
       .catch((error) => {
         setAuth({ loading: false, admin: null });
@@ -1126,15 +1188,15 @@ export default function AdminApp() {
       });
   }, []);
 
-  if (auth.loading) {
-    return <main className="admin-login-page"><p className="admin-muted">Checking admin session...</p></main>;
-  }
-
   if (!auth.admin) {
     return (
       <>
-        {authError && <div className="admin-auth-alert" role="alert">{authError}</div>}
-        <Login onLogin={(admin) => { setAuthError(""); setAuth({ loading: false, admin }); }} />
+        {auth.loading && <ApiWakeMessage elapsed={authWaitMs} />}
+        {authError && !auth.loading && <div className="admin-auth-alert" role="alert">{authError}</div>}
+        <Login
+          sessionChecking={auth.loading}
+          onLogin={(admin) => { setAuthError(""); setAuth({ loading: false, admin }); }}
+        />
       </>
     );
   }

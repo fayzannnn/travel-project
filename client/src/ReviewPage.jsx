@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
-import { getPackages, submitReview } from "./api.js";
+import {
+  ensureApiReady,
+  getPackages,
+  retryApiConnection,
+  submitReview,
+  useApiStatus,
+} from "./api.js";
 
 export default function ReviewPage() {
+  const apiStatus = useApiStatus();
   const [packages, setPackages] = useState([]);
   const [packageError, setPackageError] = useState("");
+  const [packagesLoading, setPackagesLoading] = useState(true);
+  const [packagesWaitMs, setPackagesWaitMs] = useState(0);
+  const [packageRetryKey, setPackageRetryKey] = useState(0);
   const [tripChoice, setTripChoice] = useState("");
   const [rating, setRating] = useState("5");
   const [submitting, setSubmitting] = useState(false);
@@ -12,10 +22,29 @@ export default function ReviewPage() {
 
   useEffect(() => {
     document.title = "Share your trip story — Nomad Travels";
-    getPackages()
-      .then((result) => setPackages(result.data))
-      .catch((loadError) => setPackageError(loadError.message));
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setPackagesLoading(true);
+    setPackageError("");
+    setPackagesWaitMs(0);
+    getPackages({ onRetry: (elapsed) => {
+      if (active) setPackagesWaitMs(elapsed);
+    } })
+      .then((result) => {
+        if (active) setPackages(result.data);
+      })
+      .catch((loadError) => {
+        if (active) setPackageError(loadError.message);
+      })
+      .finally(() => {
+        if (active) setPackagesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [packageRetryKey]);
 
   const reviewTrips = [...new Map(packages.map((item) => [
     item.packageId || item._id,
@@ -44,6 +73,10 @@ export default function ReviewPage() {
     }
 
     try {
+      const isReady = await ensureApiReady({ force: true });
+      if (!isReady) {
+        throw new Error("We couldn't connect to our server. Please try again.");
+      }
       const result = await submitReview(payload);
       setSuccess(result.message);
       formElement.reset();
@@ -84,6 +117,7 @@ export default function ReviewPage() {
             Which trip did you take?
             <select value={tripChoice} onChange={(event) => setTripChoice(event.target.value)} required>
               <option value="" disabled>Select a trip</option>
+              {packagesLoading && <option value="" disabled>Loading trips...</option>}
               {reviewTrips.map((item) => (
                 <option key={item.packageId || item._id} value={item.packageId || item._id}>
                   {item.destination || item.title}
@@ -98,7 +132,17 @@ export default function ReviewPage() {
               <input name="customTripName" minLength="2" maxLength="120" required />
             </label>
           )}
-          {packageError && <p className="review-inline-error" role="alert">{packageError} You can still select “Other / custom trip”.</p>}
+          {packagesLoading && packagesWaitMs >= 5000 && (
+            <p className="api-message" role="status">Waking up our servers, this can take up to a minute...</p>
+          )}
+          {packageError && (
+            <div className="review-inline-error" role="alert">
+              <p>{packageError} You can still select “Other / custom trip”.</p>
+              <button className="connection-retry" type="button" onClick={() => setPackageRetryKey((key) => key + 1)}>
+                Try again
+              </button>
+            </div>
+          )}
           <label>
             Your rating
             <select value={rating} onChange={(event) => setRating(event.target.value)} aria-label="Rating from 1 to 5 stars">
@@ -127,9 +171,14 @@ export default function ReviewPage() {
           </label>
           {error && <p className="admin-error" role="alert">{error}</p>}
           {success && <p className="admin-success" role="status">{success}</p>}
-          <button className="btn-primary review-submit" type="submit" disabled={submitting}>
-            {submitting ? "Sending your story..." : "Submit review"}
+          <button className="btn-primary review-submit" type="submit" disabled={submitting || apiStatus !== "ready"}>
+            {submitting || apiStatus !== "ready" ? "Connecting to server..." : "Submit review"}
           </button>
+          {apiStatus === "unavailable" && (
+            <button className="connection-retry" type="button" onClick={retryApiConnection}>
+              Reconnect to server
+            </button>
+          )}
           <p className="review-privacy">Your review is private until approved. We don&apos;t request your email or phone on this form.</p>
         </form>
       </main>

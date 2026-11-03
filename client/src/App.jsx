@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { createInquiry, getHomepageContent, getPackages, getPublicReviews } from "./api.js";
+import {
+  createInquiry,
+  ensureApiReady,
+  getHomepageContent,
+  getPackages,
+  getPublicReviews,
+  retryApiConnection,
+  useApiStatus,
+} from "./api.js";
 import { defaultHomepage } from "../../shared/homepage.js";
 
 const whatsappAdminNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "918070020918";
@@ -472,6 +480,7 @@ function InquiryDialog({ packageItem, initialDetails, onClose }) {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const apiStatus = useApiStatus();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -488,6 +497,10 @@ function InquiryDialog({ packageItem, initialDetails, onClose }) {
     if (initialDetails.isCustomApproach) inquiry.isCustomApproach = true;
 
     try {
+      const isReady = await ensureApiReady({ force: true });
+      if (!isReady) {
+        throw new Error("We couldn't connect to our server. Please try again.");
+      }
       const result = await createInquiry(inquiry);
       setConfirmation(result.message);
       setStatus("success");
@@ -599,9 +612,16 @@ function InquiryDialog({ packageItem, initialDetails, onClose }) {
                 </>
               )}
               {error && <p className="form-error" role="alert">{error}</p>}
-              <button className="btn-primary submit-button" type="submit" disabled={status === "submitting"}>
-                {status === "submitting" ? "Sending..." : packageItem ? "Send package enquiry" : "Send trip inquiry"}
+              <button className="btn-primary submit-button" type="submit" disabled={status === "submitting" || apiStatus !== "ready"}>
+                {status === "submitting" || apiStatus !== "ready"
+                  ? "Connecting to server..."
+                  : packageItem ? "Send package enquiry" : "Send trip inquiry"}
               </button>
+              {apiStatus === "unavailable" && (
+                <button className="connection-retry" type="button" onClick={retryApiConnection}>
+                  Reconnect to server
+                </button>
+              )}
             </form>
           </>
         )}
@@ -616,6 +636,15 @@ function App() {
   const [content, setContent] = useState(defaultHomepage);
   const [packageError, setPackageError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [packageWaitMs, setPackageWaitMs] = useState(0);
+  const [packageRetryKey, setPackageRetryKey] = useState(0);
+  const [contentError, setContentError] = useState("");
+  const [contentWaitMs, setContentWaitMs] = useState(0);
+  const [contentRetryKey, setContentRetryKey] = useState(0);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState("");
+  const [reviewsWaitMs, setReviewsWaitMs] = useState(0);
+  const [reviewsRetryKey, setReviewsRetryKey] = useState(0);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [inquiryDetails, setInquiryDetails] = useState({});
@@ -628,7 +657,12 @@ function App() {
 
   useEffect(() => {
     let active = true;
-    getPackages()
+    setIsLoading(true);
+    setPackageError("");
+    setPackageWaitMs(0);
+    getPackages({ onRetry: (elapsed) => {
+      if (active) setPackageWaitMs(elapsed);
+    } })
       .then((result) => {
         if (active) setPackages(result.data);
       })
@@ -638,24 +672,50 @@ function App() {
       .finally(() => {
         if (active) setIsLoading(false);
       });
-    getHomepageContent()
+    return () => {
+      active = false;
+    };
+  }, [packageRetryKey]);
+
+  useEffect(() => {
+    let active = true;
+    setContentError("");
+    setContentWaitMs(0);
+    getHomepageContent({ onRetry: (elapsed) => {
+      if (active) setContentWaitMs(elapsed);
+    } })
       .then((result) => {
         if (active) setContent(result.data);
       })
       .catch((error) => {
-        if (active) console.error("Could not load homepage content:", error);
-      });
-    getPublicReviews()
-      .then((result) => {
-        if (active) setTravellerReviews(result.data);
-      })
-      .catch((error) => {
-        if (active) console.error("Could not load traveller reviews:", error);
+        if (active) setContentError(error.message);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [contentRetryKey]);
+
+  useEffect(() => {
+    let active = true;
+    setReviewsLoading(true);
+    setReviewsError("");
+    setReviewsWaitMs(0);
+    getPublicReviews({ onRetry: (elapsed) => {
+      if (active) setReviewsWaitMs(elapsed);
+    } })
+      .then((result) => {
+        if (active) setTravellerReviews(result.data);
+      })
+      .catch((error) => {
+        if (active) setReviewsError(error.message);
+      })
+      .finally(() => {
+        if (active) setReviewsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reviewsRetryKey]);
 
   useEffect(() => {
     document.title = `${content.brandName} — Budget-friendly tours`;
@@ -798,6 +858,17 @@ function App() {
               </div>
             </div>
           </div>
+          {contentWaitMs >= 5000 && (
+            <p className="hero-api-message wrap" role="status">Waking up our servers, this can take up to a minute...</p>
+          )}
+          {contentError && (
+            <div className="hero-api-message wrap" role="alert">
+              <p>{contentError} Showing our saved Nomad Travel details for now.</p>
+              <button className="hero-api-retry" type="button" onClick={() => setContentRetryKey((key) => key + 1)}>
+                Try again
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="values" aria-label="How we travel">
@@ -818,11 +889,20 @@ function App() {
               <h2>{content.packagesHeading}</h2>
               <p>{content.packagesDescription}</p>
             </div>
-            {isLoading && <p className="api-message" role="status">Loading current packages...</p>}
+            {isLoading && (
+              <div className="package-skeleton-grid" role="status" aria-label="Loading travel packages">
+                {[1, 2, 3].map((item) => <div className="package-skeleton" key={item} />)}
+              </div>
+            )}
+            {isLoading && packageWaitMs >= 5000 && (
+              <p className="api-message" role="status">Waking up our servers, this can take up to a minute...</p>
+            )}
             {packageError && (
               <div className="api-error" role="alert">
                 <p>{packageError}</p>
-                <p>Start the API and MongoDB, then refresh to see available trips.</p>
+                <button className="connection-retry" type="button" onClick={() => setPackageRetryKey((key) => key + 1)}>
+                  Try again
+                </button>
               </div>
             )}
             {!isLoading && !packageError && packages.length === 0 && (
@@ -985,6 +1065,22 @@ function App() {
                 </article>
               ))}
             </div>
+            {reviewsLoading && (
+              <p className="api-wait-message" role="status">
+                <span className="small-spinner" aria-hidden="true" /> Loading recent traveller reviews...
+              </p>
+            )}
+            {reviewsLoading && reviewsWaitMs >= 5000 && (
+              <p className="api-message" role="status">Waking up our servers, this can take up to a minute...</p>
+            )}
+            {reviewsError && (
+              <div className="api-error" role="alert">
+                <p>{reviewsError}</p>
+                <button className="connection-retry" type="button" onClick={() => setReviewsRetryKey((key) => key + 1)}>
+                  Try again
+                </button>
+              </div>
+            )}
             <p className="share-review-link"><a href="/feedback">Been on a trip with us? Share your review and favourite memory →</a></p>
           </div>
         </section>
